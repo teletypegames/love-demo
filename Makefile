@@ -37,12 +37,17 @@ love:
 
 web: love
 	@mkdir -p $(WEB_DIR)
-	@echo "==> Downloading love.js"
-	curl -sSL $(LOVEJS_URL) -o $(DIST_DIR)/lovejs.zip
-	unzip -o $(DIST_DIR)/lovejs.zip -d $(WEB_DIR)
+	@echo "==> Downloading love.js (2dengine)"
+	curl -sSL https://github.com/2dengine/love.js/archive/refs/heads/master.zip -o $(DIST_DIR)/lovejs.zip
+	unzip -o $(DIST_DIR)/lovejs.zip -d $(DIST_DIR)/lovejs-src
 	rm -f $(DIST_DIR)/lovejs.zip
-	@echo "==> Copying .love into web bundle"
-	cp $(OUTPUT_LOVE) $(WEB_DIR)/game.love
+	@echo "==> Assembling web bundle"
+	cp -r $(DIST_DIR)/lovejs-src/*/. $(WEB_DIR)/
+	rm -rf $(DIST_DIR)/lovejs-src
+	cp $(OUTPUT_LOVE) $(WEB_DIR)/$(LOVE_NAME)
+	@echo "==> Generating index.html"
+	printf '<script src="player.js?g=$(LOVE_NAME)"></script>' > $(WEB_DIR)/index.html
+	@echo "==> Web build ready in $(WEB_DIR)"
 
 export: love
 	@if [ -z "$(VERSION)" ]; then \
@@ -58,7 +63,7 @@ export-web: web
 		echo "ERROR: VERSION not set!"; exit 1; \
 	fi
 	@echo "==> Packaging web build for $(VERSION)"
-	zip -r $(OUTPUT_WEB_ZIP) -j $(WEB_DIR)
+	zip -r $(OUTPUT_WEB_ZIP) $(WEB_DIR)
 	@echo "==> Cleaning temporary files"
 	rm -rf $(WEB_DIR)
 	rm -f $(OUTPUT_LOVE)
