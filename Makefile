@@ -54,7 +54,7 @@ export: love web
 	@echo "==> Packaging Love2D for $(VERSION)"
 	zip -r $(OUTPUT_ZIP) $(OUTPUT_LOVE)
 	@echo "==> Packaging web build for $(VERSION)"
-	zip -r $(OUTPUT_WEB_ZIP) $(WEB_DIR)
+	cd $(WEB_DIR) && zip -r ../../$(OUTPUT_WEB_ZIP) .
 	@echo "==> Cleaning temporary files"
 	rm -f $(OUTPUT_LOVE)
 	rm -rf $(WEB_DIR)
