@@ -1,0 +1,22 @@
+# Build output
+bin/
+dist/
+*.zip
+*.love
+*.metadata.json
+
+# Version file
+.version
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Lua
+luac.out

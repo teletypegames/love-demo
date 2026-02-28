@@ -1,0 +1,121 @@
+# -----------------------------------------
+# Makefile – Love2D project builder
+# -----------------------------------------
+
+PROJECT = love2ddemo
+
+BIN_DIR     = bin
+DIST_DIR    = dist
+WEB_DIR     = $(DIST_DIR)/web
+LOVE_NAME   = $(PROJECT).love
+OUTPUT_LOVE = $(DIST_DIR)/$(LOVE_NAME)
+OUTPUT_ZIP  = $(PROJECT)-$(VERSION).love.zip
+OUTPUT_WEB_ZIP = $(PROJECT)-$(VERSION).html.zip
+
+VERSION_FILE = .version
+
+LOVEJS_URL = https://github.com/Davidobot/love.js/releases/latest/download/love.js.zip
+
+all: build
+
+build:
+	@mkdir -p $(BIN_DIR)
+	@echo "==> Checking Love2D syntax"
+	luac -p *.lua 2>/dev/null || true
+
+love:
+	@mkdir -p $(DIST_DIR)
+	@echo "==> Building .love package"
+	zip -r $(OUTPUT_LOVE) . \
+		--exclude "*.git*" \
+		--exclude "$(BIN_DIR)/*" \
+		--exclude "$(DIST_DIR)/*" \
+		--exclude "Makefile" \
+		--exclude ".version" \
+		--exclude "metadata.json" \
+		--exclude "*.zip"
+
+web: love
+	@mkdir -p $(WEB_DIR)
+	@echo "==> Downloading love.js"
+	curl -sSL $(LOVEJS_URL) -o $(DIST_DIR)/lovejs.zip
+	unzip -o $(DIST_DIR)/lovejs.zip -d $(WEB_DIR)
+	rm -f $(DIST_DIR)/lovejs.zip
+	@echo "==> Copying .love into web bundle"
+	cp $(OUTPUT_LOVE) $(WEB_DIR)/game.love
+
+export: love
+	@if [ -z "$(VERSION)" ]; then \
+		echo "ERROR: VERSION not set!"; exit 1; \
+	fi
+	@echo "==> Packaging Love2D for $(VERSION)"
+	zip -r $(OUTPUT_ZIP) $(OUTPUT_LOVE)
+	@echo "==> Cleaning temporary files"
+	rm -f $(OUTPUT_LOVE)
+
+export-web: web
+	@if [ -z "$(VERSION)" ]; then \
+		echo "ERROR: VERSION not set!"; exit 1; \
+	fi
+	@echo "==> Packaging web build for $(VERSION)"
+	zip -r $(OUTPUT_WEB_ZIP) -j $(WEB_DIR)
+	@echo "==> Cleaning temporary files"
+	rm -rf $(WEB_DIR)
+	rm -f $(OUTPUT_LOVE)
+
+watch:
+	fswatch -o . --include="\.lua$$" | while read; do make build; done
+
+clean:
+	rm -rf $(BIN_DIR) $(DIST_DIR)
+
+ci-version:
+	@if [ -f metadata.json ]; then \
+		VERSION=$$(jq -r '.version' metadata.json); \
+	else \
+		VERSION=$$(git rev-parse --short HEAD); \
+	fi; \
+	BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	if [ "$$BRANCH" != "main" ] && [ "$$BRANCH" != "master" ]; then \
+		VERSION="dev-$$VERSION-$$BRANCH"; \
+	fi; \
+	echo $$VERSION > $(VERSION_FILE)
+
+ci-export:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	$(MAKE) export VERSION=$$VERSION
+
+ci-export-web:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	$(MAKE) export-web VERSION=$$VERSION
+
+ci-upload:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	FILE="$(PROJECT)-$$VERSION.love.zip"; \
+	META_SRC="metadata.json"; \
+	META_DST="$(PROJECT)-$$VERSION.metadata.json"; \
+	cp $$META_SRC $$META_DST; \
+	sshpass -p "$(DROPAREA_SSH_PASSWORD)" scp -o StrictHostKeyChecking=no -P $(DROPAREA_PORT) \
+		$$FILE $$META_DST \
+		$(DROPAREA_USER)@$(DROPAREA_HOST):$(DROPAREA_TARGET_PATH)/
+
+ci-upload-web:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	FILE="$(PROJECT)-$$VERSION.html.zip"; \
+	META_SRC="metadata.json"; \
+	META_DST="$(PROJECT)-$$VERSION.metadata.json"; \
+	cp $$META_SRC $$META_DST; \
+	sshpass -p "$(DROPAREA_SSH_PASSWORD)" scp -o StrictHostKeyChecking=no -P $(DROPAREA_PORT) \
+		$$FILE $$META_DST \
+		$(DROPAREA_USER)@$(DROPAREA_HOST):$(DROPAREA_TARGET_PATH)/
+
+ci-update:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d&version=$$VERSION"
+
+ci-update-web:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d-web&version=$$VERSION"
+
+.PHONY: all build love web export export-web watch clean \
+        ci-version ci-export ci-export-web ci-upload ci-upload-web ci-update ci-update-web
