@@ -94,7 +94,7 @@ ci-upload:
 
 ci-update:
 	@VERSION=$$(cat $(VERSION_FILE)); \
-	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d&version=$$VERSION"; \
-	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d-web&version=$$VERSION"
+	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love&version=$$VERSION"; \
+	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love-web&version=$$VERSION"
 
 .PHONY: all build love web export watch clean ci-version ci-export ci-upload ci-update
