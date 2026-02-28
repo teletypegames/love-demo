@@ -9,12 +9,10 @@ DIST_DIR    = dist
 WEB_DIR     = $(DIST_DIR)/web
 LOVE_NAME   = $(PROJECT).love
 OUTPUT_LOVE = $(DIST_DIR)/$(LOVE_NAME)
-OUTPUT_ZIP  = $(PROJECT)-$(VERSION).love.zip
-OUTPUT_WEB_ZIP = $(PROJECT)-$(VERSION).html.zip
+OUTPUT_ZIP      = $(PROJECT)-$(VERSION).love.zip
+OUTPUT_WEB_ZIP  = $(PROJECT)-$(VERSION).html.zip
 
 VERSION_FILE = .version
-
-LOVEJS_URL = https://github.com/Davidobot/love.js/releases/latest/download/love.js.zip
 
 all: build
 
@@ -49,24 +47,17 @@ web: love
 	printf '<script src="player.js?g=$(LOVE_NAME)"></script>' > $(WEB_DIR)/index.html
 	@echo "==> Web build ready in $(WEB_DIR)"
 
-export: love
+export: love web
 	@if [ -z "$(VERSION)" ]; then \
 		echo "ERROR: VERSION not set!"; exit 1; \
 	fi
 	@echo "==> Packaging Love2D for $(VERSION)"
 	zip -r $(OUTPUT_ZIP) $(OUTPUT_LOVE)
-	@echo "==> Cleaning temporary files"
-	rm -f $(OUTPUT_LOVE)
-
-export-web: web
-	@if [ -z "$(VERSION)" ]; then \
-		echo "ERROR: VERSION not set!"; exit 1; \
-	fi
 	@echo "==> Packaging web build for $(VERSION)"
 	zip -r $(OUTPUT_WEB_ZIP) $(WEB_DIR)
 	@echo "==> Cleaning temporary files"
-	rm -rf $(WEB_DIR)
 	rm -f $(OUTPUT_LOVE)
+	rm -rf $(WEB_DIR)
 
 watch:
 	fswatch -o . --include="\.lua$$" | while read; do make build; done
@@ -90,37 +81,20 @@ ci-export:
 	@VERSION=$$(cat $(VERSION_FILE)); \
 	$(MAKE) export VERSION=$$VERSION
 
-ci-export-web:
-	@VERSION=$$(cat $(VERSION_FILE)); \
-	$(MAKE) export-web VERSION=$$VERSION
-
 ci-upload:
 	@VERSION=$$(cat $(VERSION_FILE)); \
-	FILE="$(PROJECT)-$$VERSION.love.zip"; \
+	FILE_LOVE="$(PROJECT)-$$VERSION.love.zip"; \
+	FILE_WEB="$(PROJECT)-$$VERSION.html.zip"; \
 	META_SRC="metadata.json"; \
 	META_DST="$(PROJECT)-$$VERSION.metadata.json"; \
 	cp $$META_SRC $$META_DST; \
 	sshpass -p "$(DROPAREA_SSH_PASSWORD)" scp -o StrictHostKeyChecking=no -P $(DROPAREA_PORT) \
-		$$FILE $$META_DST \
-		$(DROPAREA_USER)@$(DROPAREA_HOST):$(DROPAREA_TARGET_PATH)/
-
-ci-upload-web:
-	@VERSION=$$(cat $(VERSION_FILE)); \
-	FILE="$(PROJECT)-$$VERSION.html.zip"; \
-	META_SRC="metadata.json"; \
-	META_DST="$(PROJECT)-$$VERSION.metadata.json"; \
-	cp $$META_SRC $$META_DST; \
-	sshpass -p "$(DROPAREA_SSH_PASSWORD)" scp -o StrictHostKeyChecking=no -P $(DROPAREA_PORT) \
-		$$FILE $$META_DST \
+		$$FILE_LOVE $$FILE_WEB $$META_DST \
 		$(DROPAREA_USER)@$(DROPAREA_HOST):$(DROPAREA_TARGET_PATH)/
 
 ci-update:
 	@VERSION=$$(cat $(VERSION_FILE)); \
-	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d&version=$$VERSION"
-
-ci-update-web:
-	@VERSION=$$(cat $(VERSION_FILE)); \
+	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d&version=$$VERSION"; \
 	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love2d-web&version=$$VERSION"
 
-.PHONY: all build love web export export-web watch clean \
-        ci-version ci-export ci-export-web ci-upload ci-upload-web ci-update ci-update-web
+.PHONY: all build love web export watch clean ci-version ci-export ci-upload ci-update
