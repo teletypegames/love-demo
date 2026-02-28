@@ -43,8 +43,10 @@ web: love
 	cp -r $(DIST_DIR)/lovejs-src/*/. $(WEB_DIR)/
 	rm -rf $(DIST_DIR)/lovejs-src
 	cp $(OUTPUT_LOVE) $(WEB_DIR)/$(LOVE_NAME)
-	@echo "==> Generating index.html"
-	printf '<script src="player.js?g=$(LOVE_NAME)"></script>' > $(WEB_DIR)/index.html
+	@echo "==> Patching player.js"
+	sed -i.bak "s|uri = 'nogame\.love'|uri = '$(LOVE_NAME)'|g" $(WEB_DIR)/player.js && rm $(WEB_DIR)/player.js.bak
+	@echo "==> Patching index.html"
+	sed -i.bak 's|<base href="/play/">|<base href="/play/$(PROJECT)/$(VERSION)/content/play">|g' $(WEB_DIR)/index.html && rm $(WEB_DIR)/index.html.bak
 	@echo "==> Web build ready in $(WEB_DIR)"
 
 export: love web
