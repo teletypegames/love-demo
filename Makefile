@@ -14,6 +14,11 @@ OUTPUT_WEB_ZIP  = $(PROJECT)-$(VERSION).html.zip
 
 VERSION_FILE = .version
 
+# The love-builder CI image pre-fetches love.js here; local builds fall
+# back to downloading it from GitHub.
+LOVEJS_URL   = https://github.com/2dengine/love.js/archive/refs/heads/master.zip
+LOVEJS_CACHE = /opt/lovejs.zip
+
 all: build
 
 build:
@@ -35,8 +40,13 @@ love:
 
 web: love
 	@mkdir -p $(WEB_DIR)
-	@echo "==> Downloading love.js (2dengine)"
-	curl -sSL https://github.com/2dengine/love.js/archive/refs/heads/master.zip -o $(DIST_DIR)/lovejs.zip
+	@if [ -f $(LOVEJS_CACHE) ]; then \
+		echo "==> Using cached love.js ($(LOVEJS_CACHE))"; \
+		cp $(LOVEJS_CACHE) $(DIST_DIR)/lovejs.zip; \
+	else \
+		echo "==> Downloading love.js (2dengine)"; \
+		curl -sSL $(LOVEJS_URL) -o $(DIST_DIR)/lovejs.zip; \
+	fi
 	unzip -o $(DIST_DIR)/lovejs.zip -d $(DIST_DIR)/lovejs-src
 	rm -f $(DIST_DIR)/lovejs.zip
 	@echo "==> Assembling web bundle"
@@ -97,5 +107,6 @@ ci-upload:
 ci-update:
 	@VERSION=$$(cat $(VERSION_FILE)); \
 	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love&version=$$VERSION"; \
+	curl "$(UPDATE_SERVER)/update?secret=$(UPDATE_SECRET)&name=$(PROJECT)&platform=love-web&version=$$VERSION"
 
 .PHONY: all build love web export watch clean ci-version ci-export ci-upload ci-update
