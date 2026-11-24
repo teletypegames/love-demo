@@ -3,7 +3,8 @@
   "title": "Love2D Demo",
   "author": "Teletype Games",
   "desc": "It's a simple demo program in Love2D",
-  "site": "https://git.teletypegames.org/games/lovedemo",
+  "site": "https://git.teletypegames.org/demos/love-demo",
+  "repo": "https://git.teletypegames.org/demos/love-demo",
   "license": "MIT License",
   "version": "1.0.0"
 }
